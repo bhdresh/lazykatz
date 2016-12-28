@@ -9,6 +9,17 @@ To overcome this, I developed a keystroke automation tool - Lazykatz which would
 
 # Usage
 
+1) Prepare a list of targets
+
+2) Run lazykatz.exe
+
+3) Enter remote admin credentials and select the file having list of targets
+
+4) Click start
+
+
+Demo:
+
 https://youtu.be/SnlQ6Tz02D4
 
 # Credits
