@@ -1,7 +1,7 @@
 # lazykatz
-Lazykatz is an automation developed to extract credentials from remote targets protected with AV and/or application whitelisting softwares.
+Lazykatz is an automation developed to extract credentials from remote targets protected with AV and/or application whitelisting software.
 
-During an internal assessment, I came across a situation where I was unable to execute Mimikatz (plain, crypted, powershell, etc.) on target machines due to the AntiVirus + Application whitelisting softwares installed on them.
+During an internal assessment, I came across a situation where I was unable to execute Mimikatz (plain, crypted, powershell, etc.) on target machines due to the AntiVirus + Application whitelisting software installed on them.
 
 However, I was able to bypass these restrictions using @subtee (https://github.com/subTee/Utils/blob/master/katz.cs) method but for that I had to perform this attack on all the hosts manually which would take forever with ~1500 machines.
 
