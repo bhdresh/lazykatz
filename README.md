@@ -20,7 +20,7 @@ To overcome this, I developed a keystroke automation tool - Lazykatz which would
 
 Demo:
 
-https://youtu.be/SnlQ6Tz02D4
+https://youtu.be/t2iI4m0twUA
 
 # Credits
 
