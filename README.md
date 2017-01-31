@@ -1,4 +1,16 @@
-# lazykatz
+# lazykatz v2.0
+
+New version will perform the attack in a background so that tool user could work on other window without being forced to wait until attack finish.
+
+- Removed keystroke automation.
+- New approach; single line mimikatz argument is used
+- Successfully bypassed various/almost all AV and whitelisting applications
+
+Future release:
+- Include wmiexec for remote login
+
+
+# lazykatz v1.0
 Lazykatz is an automation developed to extract credentials from remote targets protected with AV and/or application whitelisting software.
 
 During an internal assessment, I came across a situation where I was unable to execute Mimikatz (plain, crypted, powershell, etc.) on target machines due to the AntiVirus + Application whitelisting software installed on them.
