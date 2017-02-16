@@ -6,6 +6,10 @@ New version will perform the attack in a background so that tool user could work
 - New approach; single line mimikatz argument is used
 - Successfully bypassed various/almost all AV and whitelisting applications
 
+Demo:
+
+https://youtu.be/-D3z1Mwj1R8
+
 Future release:
 - Include wmiexec for remote login
 
