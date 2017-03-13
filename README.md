@@ -1,6 +1,6 @@
 # lazykatz v3.0
 
-Release notes:
+Release note:
 - Included wmic for remote login
 - Introduced event logging
 
