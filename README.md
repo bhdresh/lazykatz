@@ -1,3 +1,10 @@
+# lazykatz v3.0
+
+Release note:
+- Included wmic for remote login
+- Introduced event logging
+
+
 # lazykatz v2.0
 
 New version will perform the attack in a background so that tool user could work on other window without being forced to wait until attack finish.
