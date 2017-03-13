@@ -4,6 +4,7 @@ Release note:
 - Included wmic for remote login
 - Introduced event logging
 
+![alt tag](https://raw.githubusercontent.com/bhdresh/lazykatz/master/src/Screenshot.JPG)
 
 # lazykatz v2.0
 
