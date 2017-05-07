@@ -58,4 +58,4 @@ This program is for Educational purpose ONLY. Do not use it without permission. 
 
 Obviously, I am not a fulltime developer so expect some hiccups
 
-Please report bugs, issues, feature requests to bhdresh@gmail.com
+Please report bugs, issues, feature requests through https://github.com/bhdresh/lazykatz/issues
