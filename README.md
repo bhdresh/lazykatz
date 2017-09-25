@@ -14,10 +14,6 @@ New version will perform the attack in a background so that tool user could work
 - New approach; single line mimikatz argument is used
 - Successfully bypassed various/almost all AV and whitelisting applications
 
-Demo:
-
-https://youtu.be/-D3z1Mwj1R8
-
 Future release:
 - Include wmiexec for remote login
 
@@ -41,10 +37,6 @@ To overcome this, I developed a keystroke automation tool - Lazykatz which would
 
 4) Click start
 
-
-Demo:
-
-https://youtu.be/t2iI4m0twUA
 
 # Credits
 
