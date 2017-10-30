@@ -1,10 +1,16 @@
+# lazykatz v4.0
+
+Release note:
+- Included functionality to extract certificates from remote targets
+- Updated compile command to reduce AV flags
+
+![alt tag](https://raw.githubusercontent.com/bhdresh/lazykatz/master/src/PoC_screenshot.JPG)
+
 # lazykatz v3.0
 
 Release note:
 - Included wmic for remote login
 - Introduced event logging
-
-![alt tag](https://raw.githubusercontent.com/bhdresh/lazykatz/v4.0/src/PoC_screenshot.JPG)
 
 # lazykatz v2.0
 
