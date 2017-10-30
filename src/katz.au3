@@ -1,6 +1,6 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
-#AutoIt3Wrapper_Res_Description=Lazykatz v3.0
-#AutoIt3Wrapper_Res_Fileversion=3.0
+#AutoIt3Wrapper_Res_Description=Lazykatz v4.0
+#AutoIt3Wrapper_Res_Fileversion=4.0
 #AutoIt3Wrapper_Res_requestedExecutionLevel=requireAdministrator
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
@@ -21,7 +21,7 @@ FileDelete(@TempDir & "\psexec.exe")
 FileInstall("PsExec.exe", @TempDir & "\psexec.exe")
 FileInstall("katz.cs", @TempDir & "\katz.cs")
 
-$Form1 = GUICreate("Lazykatz v3.0", 700, 448, 192, 125)
+$Form1 = GUICreate("Lazykatz v4.0", 700, 448, 192, 125)
 GUICtrlCreateLabel("*** LAZYKATZ LOG ***", 490, 40, 150, 25)
 Global $idEdit = GUICtrlCreateedit("", 430, 60, 250, 350)
 GUICtrlCreateLabel("Username", 80, 40, 90, 25)
