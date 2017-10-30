@@ -1,6 +1,6 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Res_Description=Lazykatz v4.0
-#AutoIt3Wrapper_Res_Fileversion=4.0
+#AutoIt3Wrapper_Res_Fileversion=4.0.0.0
 #AutoIt3Wrapper_Res_requestedExecutionLevel=requireAdministrator
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
